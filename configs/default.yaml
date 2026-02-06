@@ -1,0 +1,68 @@
+# Default configuration for PanGo
+#
+pan_stepper:
+  step_pin: 17
+  dir_pin: 27
+  steps_per_rev: 200
+  microstepping: 16
+
+tilt_stepper:
+  step_pin: 22
+  dir_pin: 23
+  steps_per_rev: 200
+  microstepping: 16
+
+camera:
+  # Camera type
+  type: "nikon_d90_gpio"
+  # GPIO pin for FOCUS line (autofocus)
+  focus_pin: 24
+  # GPIO pin for SHUTTER line (trigger)
+  shutter_pin: 25
+  # Note: GND from remote connector must be connected to Raspberry Pi GND
+  # Autofocus delay (ms) - time between FOCUS and SHUTTER activation
+  focus_delay_ms: 500
+  # Shutter hold time (ms)
+  shutter_delay_ms: 200
+  # Delay after shot before moving the head (ms)
+  post_shot_delay_ms: 300
+
+lens:
+  # Lens name (informational)
+  name: "Nikkor 35mm f/1.8"
+  # Focal length in mm
+  focal_length_mm: 35.0
+
+# Physical sensor size (optional)
+sensor:
+  width_mm: 23.6
+  height_mm: 15.8
+
+# Sensor/image resolution (optional)
+resolution:
+  width_px: 4288
+  height_px: 2848
+
+defaults:
+  # Delay between motor steps (used to calculate speed)
+  move_speed_ms: 2
+  # Desired overlap between photos in percent (0-100)
+  # 30% means each photo overlaps 30% with the previous one
+  overlap_percent: 30.0
+  # Total horizontal shooting angle in degrees (default: 180°)
+  # Camera is centered, so it goes from -90° to +90° from center
+  horizontal_angle_deg: 180.0
+  # Total vertical shooting angle in degrees (default: 30°)
+  # Camera is centered, so it goes from -15° to +15° from center
+  vertical_angle_deg: 30.0
+  # Debug level (0-4)
+  # 0 = no output
+  # 1 = important info (grid, total photo count)
+  # 2 = live info (movements, photos taken)
+  # 3 = verbose (calculation details, steps, FOV, angles)
+  # 4 = trace (GPIO, very low level)
+  debug_level: 1
+  # Use mock GPIO (true = development/test, false = real Raspberry Pi)
+  # On a PC, set to true to test without hardware
+  # On Raspberry Pi, set to false to use real GPIO
+  mock_gpio: true
