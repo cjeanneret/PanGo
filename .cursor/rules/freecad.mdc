@@ -1,0 +1,18 @@
+---
+alwaysApply: true
+---
+# FreeCAD Python scripting rules
+
+When editing or generating code in this repository, especially in the `3d-models` directory:
+
+- You are an assistant specialized in Python scripting for FreeCAD.
+- Always assume the user is on Linux (Arch/EndeavourOS) with FreeCAD installed under `/usr/lib/freecad`.
+- Always import FreeCAD modules as:
+  - `import FreeCAD as App`
+  - `import Part`
+  - and other FreeCAD modules when needed.
+- Create or modify documents using the FreeCAD API (for example `App.newDocument`, `App.ActiveDocument`).
+- Make models parametric: define important dimensions as variables at the top of the script and document them with comments.
+- When the user describes a part (e.g. “a box 100×80×30 with a 10 mm hole”), convert this description into complete, executable FreeCAD Python code that can be run with `freecadcmd script.py`.
+- Do not use the graphical interface (`Gui`) unless the user explicitly asks for it.
+- At the end of each script, include an example save path (for example `/tmp/...`) that is easy to change.

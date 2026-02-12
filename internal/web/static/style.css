@@ -1,0 +1,291 @@
+/* PanGo — Mobile-first, orientation-aware */
+
+:root {
+  --bg: #f5f3ef;
+  --bg-card: #fff;
+  --text: #1a1a1a;
+  --text-muted: #5c5c5c;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --success: #16a34a;
+  --error: #dc2626;
+  --warning: #d97706;
+  --console-bg: #1a1a1a;
+  --console-text: #e5e5e5;
+  --console-border: #333;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --touch-min: 44px;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--safe-top) 16px var(--safe-bottom);
+  padding: max(16px, var(--safe-top)) 16px max(16px, var(--safe-bottom));
+}
+
+/* Header */
+.header {
+  padding: 12px 0 16px;
+  text-align: center;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* Form */
+.form-section {
+  flex-shrink: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.field input {
+  min-height: var(--touch-min);
+  padding: 10px 14px;
+  font-size: 1.1rem;
+  border: 2px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field input::-webkit-outer-spin-button,
+.field input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.field input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.btn-launch {
+  min-height: var(--touch-min);
+  margin-top: 8px;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.05s;
+}
+
+.btn-launch:hover {
+  background: var(--accent-hover);
+}
+
+.btn-launch:active {
+  transform: scale(0.98);
+}
+
+.btn-launch:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Console */
+.console-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 16px;
+}
+
+.console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--console-bg);
+  border-radius: var(--radius) var(--radius) 0 0;
+  color: var(--console-text);
+  font-size: 0.9rem;
+}
+
+.console-title {
+  font-weight: 600;
+}
+
+.status-badge {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.status-idle {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.status-running {
+  background: var(--success);
+  color: #fff;
+}
+
+.status-error {
+  background: var(--error);
+  color: #fff;
+}
+
+.console {
+  flex: 1;
+  min-height: 120px;
+  padding: 14px;
+  background: var(--console-bg);
+  border: 1px solid var(--console-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  color: var(--console-text);
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 0.85rem;
+  overflow-y: auto;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.console:empty::before {
+  content: "Waiting for connection…";
+  color: var(--text-muted);
+}
+
+/* ——— Portrait (default) ——— */
+@media (orientation: portrait) {
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .console-section {
+    min-height: 180px;
+  }
+}
+
+/* ——— Landscape ——— */
+@media (orientation: landscape) {
+  .app {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 20px;
+    max-width: 100%;
+  }
+
+  .header {
+    flex: 0 0 100%;
+    padding: 8px 0;
+  }
+
+  .form-section {
+    flex: 0 1 280px;
+  }
+
+  .console-section {
+    flex: 1 1 280px;
+    min-width: 0;
+    margin-top: 0;
+    min-height: 200px;
+  }
+
+  .form {
+    padding: 16px;
+  }
+}
+
+/* ——— Tablet and up (landscape) ——— */
+@media (orientation: landscape) and (min-width: 600px) {
+  .app {
+    padding: 24px;
+  }
+
+  .form-section {
+    flex: 0 0 300px;
+  }
+
+  .console-section {
+    flex: 1;
+    min-height: 300px;
+  }
+}
+
+/* ——— Tablet portrait ——— */
+@media (orientation: portrait) and (min-width: 600px) {
+  .app {
+    max-width: 520px;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+  }
+
+  .form {
+    padding: 24px;
+  }
+
+  .console-section {
+    min-height: 220px;
+  }
+}

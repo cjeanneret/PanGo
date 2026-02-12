@@ -36,3 +36,20 @@ func (c *Controller) MovePanTilt(panSteps, tiltSteps int) error {
 	}
 	return nil
 }
+
+// EnableMotors enables both drivers (A4988 ENABLE=LOW). Motors hold position.
+func (c *Controller) EnableMotors() error {
+	if err := c.pan.Enable(); err != nil {
+		return err
+	}
+	return c.tilt.Enable()
+}
+
+// DisableMotors disables both drivers (A4988 ENABLE=HIGH). Motors freewheel.
+// Use during photo capture to reduce vibration and save power.
+func (c *Controller) DisableMotors() error {
+	if err := c.pan.Disable(); err != nil {
+		return err
+	}
+	return c.tilt.Disable()
+}

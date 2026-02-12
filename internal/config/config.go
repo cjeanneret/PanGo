@@ -12,6 +12,7 @@ import (
 type StepperConfig struct {
 	StepPin       int `yaml:"step_pin"`
 	DirPin        int `yaml:"dir_pin"`
+	EnablePin     int `yaml:"enable_pin"`     // A4988 ENABLE pin (BCM). 0 = not used. Active LOW.
 	StepsPerRev   int `yaml:"steps_per_rev"`
 	Microstepping int `yaml:"microstepping"`
 }

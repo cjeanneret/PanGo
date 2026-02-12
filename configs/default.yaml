@@ -3,12 +3,14 @@
 pan_stepper:
   step_pin: 17
   dir_pin: 27
+  enable_pin: 5   # A4988 ENABLE (BCM). 0 = not used. Active LOW.
   steps_per_rev: 200
   microstepping: 16
 
 tilt_stepper:
   step_pin: 22
   dir_pin: 23
+  enable_pin: 6   # A4988 ENABLE (BCM). 0 = not used. Active LOW.
   steps_per_rev: 200
   microstepping: 16
 
@@ -44,7 +46,7 @@ resolution:
   height_px: 2848
 
 defaults:
-  # Delay between motor steps (used to calculate speed)
+  # Delay between motor steps (ms). Higher = slower movement, less stress on mechanics.
   move_speed_ms: 2
   # Desired overlap between photos in percent (0-100)
   # 30% means each photo overlaps 30% with the previous one

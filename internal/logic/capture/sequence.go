@@ -67,6 +67,9 @@ func (s *Sequence) InitializePosition(plan *geometry.GridPlan) error {
 func (s *Sequence) RunGridShot(ctx context.Context, p GridShotParams) error {
 	plan := p.GridPlan
 
+	// Ensure motors are enabled before any movement
+	_ = s.motion.EnableMotors()
+
 	// Initialize: go to start position (left, top)
 	if err := s.InitializePosition(plan); err != nil {
 		return err
@@ -117,14 +120,17 @@ func (s *Sequence) RunGridShot(ctx context.Context, p GridShotParams) error {
 				debug.Verbose("  Row %d/%d: at start position", row+1, plan.TiltRows)
 			}
 
-			// Take photo
+			// Disable motors during capture (reduces vibration, no holding torque)
+			_ = s.motion.DisableMotors()
 			time.Sleep(p.ShotDelay)
 			if err := s.camera.Shoot(); err != nil {
+				_ = s.motion.EnableMotors()
 				return err
 			}
 			debug.Shot(col+1, row+1)
-			// Delay after shot before moving
 			time.Sleep(p.PostShotDelay)
+			// Re-enable motors for next movement
+			_ = s.motion.EnableMotors()
 		}
 
 		// Horizontal shift to the right (except for the last column)

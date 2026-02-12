@@ -2,6 +2,7 @@ package debug
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 )
@@ -30,6 +31,13 @@ func Init(debugLevel int) {
 	level = debugLevel
 	if level > LevelOff {
 		logger = log.New(os.Stdout, "[PanGo] ", log.LstdFlags|log.Lmicroseconds)
+	}
+}
+
+// SetOutput sets the output writer for debug logs (e.g. io.MultiWriter for stdout + SSE).
+func SetOutput(w io.Writer) {
+	if logger != nil {
+		logger.SetOutput(w)
 	}
 }
 
