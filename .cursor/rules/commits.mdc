@@ -1,0 +1,47 @@
+---
+description: Convention des commits avec métadonnées et co-auteur Cursor
+alwaysApply: true
+---
+
+# Règles pour les commits
+
+Lorsque tu crées un commit sur demande de l'utilisateur, respecte toujours ce format :
+
+## Format du message de commit
+
+```
+<titre court>
+
+<description optionnelle>
+
+---
+Tool: <nom de l'outil utilisé, ex. Cursor>
+Agent: <nom de l'agent utilisé, ex. Composer>
+Model: <nom du modèle, ex. claude-sonnet-4.5>
+
+Co-authored-by: Cursor <cursor@cursor.com>
+```
+
+## Exemple
+
+```
+feat: ajout du support des exports PDF
+
+Ajout de la bibliothèque de génération PDF et des handlers associés.
+
+---
+Tool: Cursor
+Agent: Composer
+Model: claude-sonnet-4.5
+
+Co-authored-by: Cursor <cursor@cursor.com>
+```
+
+## Contraintes
+
+- **Tool** : l'outil utilisé pour le travail (ex. Cursor, GitHub Copilot)
+- **Agent** : l'agent qui a effectué les modifications (ex. Composer, Chat)
+- **Model** : le modèle de langage employé (ex. claude-sonnet-4.5, gpt-4o)
+- **Co-authored-by** : toujours inclure Cursor comme co-auteur avec la ligne exacte ci-dessus
+
+Si tu utilises la commande `git commit`, passe ces informations dans le corps du message via l'option `-m` pour le titre et les options suivantes pour le corps, ou utilise un fichier de message temporaire.
