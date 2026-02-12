@@ -38,21 +38,34 @@ body {
 }
 
 .app {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: var(--safe-top) 16px var(--safe-bottom);
   padding: max(16px, var(--safe-top)) 16px max(16px, var(--safe-bottom));
+  gap: 16px;
+  /* Portrait: 3 rows, 1 column */
+  grid-template-rows: auto auto 1fr;
+  grid-template-columns: 1fr;
 }
 
-/* Header */
-.header {
-  padding: 12px 0 16px;
+/* Logo section */
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  padding: 8px 0;
 }
 
-.header h1 {
+.logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.logo-section h1 {
   margin: 0;
   font-size: 1.75rem;
   font-weight: 700;
@@ -147,11 +160,9 @@ body {
 
 /* Console */
 .console-section {
-  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin-top: 16px;
 }
 
 .console-header {
@@ -224,29 +235,28 @@ body {
   }
 }
 
-/* ——— Landscape ——— */
+/* ——— Landscape (wide): logo + form à gauche, console à droite ——— */
 @media (orientation: landscape) {
   .app {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-content: flex-start;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: auto 1fr;
     gap: 20px;
     max-width: 100%;
   }
 
-  .header {
-    flex: 0 0 100%;
-    padding: 8px 0;
+  .logo-section {
+    grid-area: 1 / 1;
+    align-items: center;
+    padding: 0;
   }
 
   .form-section {
-    flex: 0 1 280px;
+    grid-area: 2 / 1;
+    align-self: start;
   }
 
   .console-section {
-    flex: 1 1 280px;
-    min-width: 0;
-    margin-top: 0;
+    grid-area: 1 / 2 / 3 / 3;
     min-height: 200px;
   }
 
@@ -261,12 +271,16 @@ body {
     padding: 24px;
   }
 
-  .form-section {
-    flex: 0 0 300px;
+  .logo-section .logo {
+    width: 80px;
+    height: 80px;
+  }
+
+  .logo-section h1 {
+    font-size: 1.5rem;
   }
 
   .console-section {
-    flex: 1;
     min-height: 300px;
   }
 }
@@ -277,7 +291,7 @@ body {
     max-width: 520px;
   }
 
-  .header h1 {
+  .logo-section h1 {
     font-size: 2rem;
   }
 
