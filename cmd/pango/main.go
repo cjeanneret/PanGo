@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -41,6 +42,11 @@ func main() {
 	cfg, err := config.Load(*cfgPath)
 	if err != nil {
 		log.Fatalf("load config failed: %v", err)
+	}
+
+	// Validate CLI overrides (only non-zero values are applied; zero means "use config default")
+	if err := validateCLIOverrides(*horizontalAngleDeg, *verticalAngleDeg, *focalLengthMm); err != nil {
+		log.Fatalf("invalid CLI override: %v", err)
 	}
 
 	// Apply CLI overrides to config
@@ -186,6 +192,27 @@ func executeCapture(
 	}
 
 	debug.Section("Sequence Complete")
+	return nil
+}
+
+// validateCLIOverrides checks that non-zero CLI overrides are within valid ranges.
+// Zero values are ignored (they mean "use config default").
+func validateCLIOverrides(horizontal, vertical, focal float64) error {
+	if horizontal != 0 {
+		if math.IsNaN(horizontal) || math.IsInf(horizontal, 0) || horizontal <= 0 || horizontal > 360 {
+			return fmt.Errorf("horizontal_angle_deg must be between 1 and 360, got %g", horizontal)
+		}
+	}
+	if vertical != 0 {
+		if math.IsNaN(vertical) || math.IsInf(vertical, 0) || vertical <= 0 || vertical > 180 {
+			return fmt.Errorf("vertical_angle_deg must be between 1 and 180, got %g", vertical)
+		}
+	}
+	if focal != 0 {
+		if math.IsNaN(focal) || math.IsInf(focal, 0) || focal <= 0 || focal > 500 {
+			return fmt.Errorf("focal_length_mm must be between 1 and 500, got %g", focal)
+		}
+	}
 	return nil
 }
 

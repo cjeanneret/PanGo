@@ -3,12 +3,21 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/fs"
 	"log"
+	"math"
 	"net/http"
 	"sync"
 	"time"
 )
+
+// Max size for POST /run request body (1 MB). Prevents memory exhaustion on constrained devices.
+const maxRequestBodyBytes = 1 << 20
+
+// Minimum delay between two capture starts. Protects hardware (motors, camera) from rapid successive triggers.
+const minDelayBetweenCaptures = 5 * time.Second
 
 // Overrides holds capture parameters that can override config defaults.
 type Overrides struct {
@@ -35,7 +44,33 @@ type Handlers struct {
 	FormDefaults FormConfig
 	runningMu     sync.Mutex
 	running       bool
+	lastCaptureMu sync.Mutex
+	lastCaptureAt time.Time
 	staticFS      fs.FS
+}
+
+// ValidateOverrides checks that capture overrides contain valid numeric values.
+// Rejects NaN, Infinity, and out-of-range values to prevent crashes and erratic motor behaviour.
+func ValidateOverrides(o Overrides) error {
+	if math.IsNaN(o.HorizontalAngleDeg) || math.IsInf(o.HorizontalAngleDeg, 0) {
+		return errors.New("horizontal_angle_deg must be a finite number")
+	}
+	if o.HorizontalAngleDeg <= 0 || o.HorizontalAngleDeg > 360 {
+		return fmt.Errorf("horizontal_angle_deg must be between 1 and 360, got %g", o.HorizontalAngleDeg)
+	}
+	if math.IsNaN(o.VerticalAngleDeg) || math.IsInf(o.VerticalAngleDeg, 0) {
+		return errors.New("vertical_angle_deg must be a finite number")
+	}
+	if o.VerticalAngleDeg <= 0 || o.VerticalAngleDeg > 180 {
+		return fmt.Errorf("vertical_angle_deg must be between 1 and 180, got %g", o.VerticalAngleDeg)
+	}
+	if math.IsNaN(o.FocalLengthMm) || math.IsInf(o.FocalLengthMm, 0) {
+		return errors.New("focal_length_mm must be a finite number")
+	}
+	if o.FocalLengthMm <= 0 || o.FocalLengthMm > 500 {
+		return fmt.Errorf("focal_length_mm must be between 1 and 500, got %g", o.FocalLengthMm)
+	}
+	return nil
 }
 
 // NewHandlers creates handlers with the given dependencies.
@@ -73,23 +108,17 @@ func (h *Handlers) HandleRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Limit request body size to prevent memory exhaustion on Raspberry Pi (512 MB).
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
+
 	var overrides Overrides
 	if err := json.NewDecoder(r.Body).Decode(&overrides); err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	// Validate
-	if overrides.HorizontalAngleDeg <= 0 || overrides.HorizontalAngleDeg > 360 {
-		http.Error(w, "horizontal_angle_deg must be between 1 and 360", http.StatusBadRequest)
-		return
-	}
-	if overrides.VerticalAngleDeg <= 0 || overrides.VerticalAngleDeg > 180 {
-		http.Error(w, "vertical_angle_deg must be between 1 and 180", http.StatusBadRequest)
-		return
-	}
-	if overrides.FocalLengthMm <= 0 || overrides.FocalLengthMm > 500 {
-		http.Error(w, "focal_length_mm must be between 1 and 500", http.StatusBadRequest)
+	if err := ValidateOverrides(overrides); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -106,6 +135,19 @@ func (h *Handlers) HandleRun(w http.ResponseWriter, r *http.Request) {
 	}
 	h.running = true
 	h.runningMu.Unlock()
+
+	// Enforce minimum delay between captures to protect hardware (motors, camera).
+	h.lastCaptureMu.Lock()
+	if d := minDelayBetweenCaptures - time.Since(h.lastCaptureAt); d > 0 {
+		h.lastCaptureMu.Unlock()
+		h.runningMu.Lock()
+		h.running = false
+		h.runningMu.Unlock()
+		http.Error(w, "please wait before starting another capture", http.StatusTooManyRequests)
+		return
+	}
+	h.lastCaptureAt = time.Now()
+	h.lastCaptureMu.Unlock()
 
 	// Run in goroutine; clear running when done
 	go func() {

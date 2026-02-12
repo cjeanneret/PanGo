@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -57,6 +58,10 @@ type DefaultsConfig struct {
 	MockGPIO           bool    `yaml:"mock_gpio"`            // use mock GPIO (true=dev/test, false=real Raspberry Pi)
 }
 
+// MaxConfigFileBytes is the maximum allowed size for a config file (256 KB).
+// Prevents memory exhaustion on resource-constrained devices (e.g. Raspberry Pi Zero 2).
+const MaxConfigFileBytes = 256 << 10
+
 // Config aggregates all application configuration.
 type Config struct {
 	PanStepper  StepperConfig     `yaml:"pan_stepper"`
@@ -68,8 +73,37 @@ type Config struct {
 	Defaults    DefaultsConfig    `yaml:"defaults"`
 }
 
+// ValidateConfigPath ensures the path is within a configs/ directory and has .yaml extension.
+// Prevents path traversal (e.g. ../../etc/passwd) when loading configuration.
+func ValidateConfigPath(path string) error {
+	cleaned := filepath.Clean(path)
+	if filepath.Ext(cleaned) != ".yaml" {
+		return fmt.Errorf("config file must have .yaml extension, got %s", filepath.Ext(cleaned))
+	}
+	absPath, err := filepath.Abs(cleaned)
+	if err != nil {
+		return fmt.Errorf("resolve config path: %w", err)
+	}
+	// Ensure the config file lives in a directory named "configs" (works regardless of CWD).
+	parentDir := filepath.Dir(absPath)
+	if filepath.Base(parentDir) != "configs" {
+		return fmt.Errorf("config path must be within a directory named configs/")
+	}
+	return nil
+}
+
 // Load reads a YAML file and returns the configuration.
 func Load(path string) (*Config, error) {
+	if err := ValidateConfigPath(path); err != nil {
+		return nil, err
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("read config file: %w", err)
+	}
+	if info.Size() > MaxConfigFileBytes {
+		return nil, fmt.Errorf("config file too large: %d bytes (max %d)", info.Size(), MaxConfigFileBytes)
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read config file: %w", err)
