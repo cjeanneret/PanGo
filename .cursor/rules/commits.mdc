@@ -1,33 +1,35 @@
 ---
-description: Convention des commits avec métadonnées et co-auteur Cursor
+description: Commit conventions with metadata and Cursor co-author
 alwaysApply: true
 ---
 
-# Règles pour les commits
+# Commit rules
 
-Lorsque tu crées un commit sur demande de l'utilisateur, respecte toujours ce format :
+When creating a commit at the user's request, always follow this format:
 
-## Format du message de commit
+**Important: All commits (title and description) MUST be written in English.**
+
+## Commit message format
 
 ```
-<titre court>
+<short title>
 
-<description optionnelle>
+<optional description>
 
 ---
-Tool: <nom de l'outil utilisé, ex. Cursor>
-Agent: <nom de l'agent utilisé, ex. Composer>
-Model: <nom du modèle, ex. claude-sonnet-4.5>
+Tool: <tool name, e.g. Cursor>
+Agent: <agent name, e.g. Composer>
+Model: <model name, e.g. claude-sonnet-4.5>
 
 Co-authored-by: Cursor <cursor@cursor.com>
 ```
 
-## Exemple
+## Example
 
 ```
-feat: ajout du support des exports PDF
+feat: add PDF export support
 
-Ajout de la bibliothèque de génération PDF et des handlers associés.
+Add PDF generation library and associated handlers.
 
 ---
 Tool: Cursor
@@ -37,11 +39,13 @@ Model: claude-sonnet-4.5
 Co-authored-by: Cursor <cursor@cursor.com>
 ```
 
-## Contraintes
+## Constraints
 
-- **Tool** : l'outil utilisé pour le travail (ex. Cursor, GitHub Copilot)
-- **Agent** : l'agent qui a effectué les modifications (ex. Composer, Chat)
-- **Model** : le modèle de langage employé (ex. claude-sonnet-4.5, gpt-4o)
-- **Co-authored-by** : toujours inclure Cursor comme co-auteur avec la ligne exacte ci-dessus
+- **Title**: keep under 50 characters.
+- **Description**: wrap each line at 72 characters maximum.
+- **Tool**: the tool used for the work (e.g. Cursor, GitHub Copilot)
+- **Agent**: the agent that performed the changes (e.g. Composer, Chat)
+- **Model**: the language model used (e.g. claude-sonnet-4.5, gpt-4o)
+- **Co-authored-by**: always include Cursor as co-author with the exact line above
 
-Si tu utilises la commande `git commit`, passe ces informations dans le corps du message via l'option `-m` pour le titre et les options suivantes pour le corps, ou utilise un fichier de message temporaire.
+When using the `git commit` command, pass this information in the message body via the `-m` option for the title and subsequent options for the body, or use a temporary message file.
