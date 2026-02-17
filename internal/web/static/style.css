@@ -158,6 +158,45 @@ body {
   transform: none;
 }
 
+.btn-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn-group .btn-launch {
+  flex: 1;
+  margin-top: 0;
+}
+
+.btn-cancel {
+  flex: 1;
+  min-height: var(--touch-min);
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--error);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.05s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.btn-cancel:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-cancel:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* Console */
 .console-section {
   display: flex;

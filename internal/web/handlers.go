@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -39,14 +40,17 @@ type FormConfig struct {
 
 // Handlers holds dependencies for HTTP handlers.
 type Handlers struct {
-	Broadcaster   *StatusBroadcaster
-	RunCapture    RunCaptureFunc
-	FormDefaults FormConfig
-	runningMu     sync.Mutex
-	running       bool
-	lastCaptureMu sync.Mutex
-	lastCaptureAt time.Time
-	staticFS      fs.FS
+	Broadcaster       *StatusBroadcaster
+	RunCapture        RunCaptureFunc
+	FormDefaults      FormConfig
+	HeartbeatInterval time.Duration // SSE heartbeat interval; 0 defaults to 30s.
+	runningMu         sync.Mutex
+	running           bool
+	lastCaptureMu     sync.Mutex
+	lastCaptureAt     time.Time
+	staticFS          fs.FS
+	captureCancelMu   sync.Mutex
+	captureCancel     context.CancelFunc
 }
 
 // ValidateOverrides checks that capture overrides contain valid numeric values.
@@ -149,18 +153,34 @@ func (h *Handlers) HandleRun(w http.ResponseWriter, r *http.Request) {
 	h.lastCaptureAt = time.Now()
 	h.lastCaptureMu.Unlock()
 
-	// Run in goroutine; clear running when done
+	// Create a cancellable context detached from the HTTP request so the capture
+	// survives browser disconnects but can be stopped via POST /cancel.
+	ctx, cancel := context.WithCancel(context.Background())
+
+	h.captureCancelMu.Lock()
+	h.captureCancel = cancel
+	h.captureCancelMu.Unlock()
+
+	// Run in goroutine; clear running and cancel func when done.
 	go func() {
 		defer func() {
+			h.captureCancelMu.Lock()
+			h.captureCancel = nil
+			h.captureCancelMu.Unlock()
+
 			h.runningMu.Lock()
 			h.running = false
 			h.runningMu.Unlock()
 		}()
 
-		ctx := context.Background()
 		if err := h.RunCapture(ctx, overrides); err != nil {
-			h.Broadcaster.Broadcast("error", "Capture failed: "+err.Error())
-			log.Printf("capture failed: %v", err)
+			if errors.Is(err, context.Canceled) {
+				h.Broadcaster.Broadcast("warning", "Capture cancelled by user")
+				log.Println("capture cancelled by user")
+			} else {
+				h.Broadcaster.Broadcast("error", "Capture failed: "+err.Error())
+				log.Printf("capture failed: %v", err)
+			}
 		} else {
 			h.Broadcaster.Broadcast("info", "Sequence complete")
 		}
@@ -169,6 +189,41 @@ func (h *Handlers) HandleRun(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]string{"status": "started"})
+}
+
+// HandleCancel handles POST /cancel to stop a running capture.
+func (h *Handlers) HandleCancel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	h.captureCancelMu.Lock()
+	cancel := h.captureCancel
+	h.captureCancelMu.Unlock()
+
+	if cancel == nil {
+		http.Error(w, "no capture in progress", http.StatusConflict)
+		return
+	}
+
+	cancel()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "cancelled",
+		"message": "Capture cancellation requested",
+	})
+}
+
+// sanitizeSSE strips newlines and carriage returns from an SSE data payload
+// to prevent breaking the SSE framing. json.Marshal already escapes these,
+// but this provides a defensive second layer.
+func sanitizeSSE(s string) string {
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	return s
 }
 
 // HandleStatusStream handles GET /status/stream for SSE.
@@ -192,7 +247,11 @@ func (h *Handlers) HandleStatusStream(w http.ResponseWriter, r *http.Request) {
 	flusher.Flush()
 
 	// Heartbeat while idle
-	ticker := time.NewTicker(30 * time.Second)
+	interval := h.HeartbeatInterval
+	if interval == 0 {
+		interval = 30 * time.Second
+	}
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {
@@ -201,7 +260,7 @@ func (h *Handlers) HandleStatusStream(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				return
 			}
-			w.Write([]byte("data: " + msg + "\n\n"))
+			w.Write([]byte("data: " + sanitizeSSE(msg) + "\n\n"))
 			flusher.Flush()
 
 		case <-ticker.C:

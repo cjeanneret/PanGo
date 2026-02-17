@@ -34,6 +34,7 @@ func (s *Server) Mux() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /run", s.handlers.HandleRun)
+	mux.HandleFunc("POST /cancel", s.handlers.HandleCancel)
 	mux.HandleFunc("GET /config", s.handlers.HandleConfig)
 	mux.HandleFunc("GET /status/stream", s.handlers.HandleStatusStream)
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(s.handlers.staticFS))))
@@ -50,7 +51,14 @@ func (s *Server) ListenAndServe() error {
 
 // Run starts the server and blocks until ctx is cancelled, then shuts down gracefully.
 func (s *Server) Run(ctx context.Context) error {
-	srv := &http.Server{Addr: s.addr, Handler: s.Mux()}
+	srv := &http.Server{
+		Addr:        s.addr,
+		Handler:     s.Mux(),
+		ReadTimeout: 5 * time.Second,
+		IdleTimeout: 120 * time.Second,
+		// WriteTimeout intentionally left at 0 (unlimited) because the SSE
+		// endpoint streams data for the entire duration of a capture.
+	}
 	errCh := make(chan error, 1)
 	go func() {
 		log.Printf("web server listening on %s", s.addr)

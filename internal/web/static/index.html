@@ -36,9 +36,14 @@
           <input type="number" id="focal_length_mm" name="focal_length_mm"
                  min="1" max="500" step="0.1" required>
         </div>
-        <button type="submit" id="launch-btn" class="btn-launch">
-          Launch capture
-        </button>
+        <div class="btn-group">
+          <button type="submit" id="launch-btn" class="btn-launch">
+            Launch capture
+          </button>
+          <button type="button" id="cancel-btn" class="btn-cancel" disabled>
+            Stop capture
+          </button>
+        </div>
       </form>
     </section>
 

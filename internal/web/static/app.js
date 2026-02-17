@@ -6,6 +6,7 @@
 (function () {
   const form = document.getElementById('capture-form');
   const launchBtn = document.getElementById('launch-btn');
+  const cancelBtn = document.getElementById('cancel-btn');
   const consoleEl = document.getElementById('console');
   const statusBadge = document.getElementById('status-badge');
 
@@ -33,6 +34,7 @@
     statusBadge.textContent = label;
     isRunning = status === 'running';
     launchBtn.disabled = isRunning;
+    cancelBtn.disabled = !isRunning;
   }
 
   function appendConsole(msg, level) {
@@ -51,7 +53,7 @@
       try {
         const data = JSON.parse(e.data);
         appendConsole(data.msg || data, data.level || 'info');
-        if (/\bcomplete\b/i.test(data.msg || '')) {
+        if (/\b(complete|cancelled|failed)\b/i.test(data.msg || '')) {
           setStatus('idle', 'Idle');
         }
       } catch {
@@ -100,6 +102,26 @@
     } catch (err) {
       appendConsole('Network error: ' + err.message, 'error');
       setStatus('error', 'Error');
+    }
+  });
+
+  cancelBtn.addEventListener('click', async function () {
+    if (!isRunning) return;
+
+    try {
+      const res = await fetch('/cancel', { method: 'POST' });
+
+      if (res.ok) {
+        appendConsole('Cancellation requested...', 'warning');
+        cancelBtn.disabled = true;
+      } else if (res.status === 409) {
+        appendConsole('No capture in progress.', 'info');
+      } else {
+        const err = await res.text();
+        appendConsole('Cancel failed: ' + (err || res.status), 'error');
+      }
+    } catch (err) {
+      appendConsole('Network error: ' + err.message, 'error');
     }
   });
 
