@@ -1,18 +1,37 @@
 # PanGo Logo
 
-The original logo (`logo-pango.png`) was generated using **Perplexity** (AI assistant). Perplexity was provided with the project repository and produced both the prompt and the icon via its internal image generation tool.
+The logo (`logo-pango.png`) was generated using **Leonardo.ai**.
+
+## Generation details
+
+| Field | Value |
+|-------|-------|
+| Generator | [Leonardo.ai](https://leonardo.ai) |
+| Model | Lucid Origin |
+| Style | Dynamic |
 
 ## Prompt
 
-> A modern, technical app icon for a pan-tilt photography controller system. The design features an abstract geometric representation of a two-axis gimbal mechanism: two perpendicular rotating axes or rings intersecting at right angles, suggesting precision movement in horizontal and vertical directions. The composition uses clean lines, angular shapes, and a wireframe or blueprint aesthetic. A small circular element at the center hints at a camera lens without being literal. The color scheme uses electric blue, cyan, and dark charcoal gray with subtle metallic gradients. The icon has a dark background with the mechanical elements in bright, contrasting colors. The overall style is technical, precise, and distinctly different from social media apps - more engineering-focused with sharp angles rather than curves. Square format, suitable for an application icon.
+> Using the description of the PanGo project, create a technical yet slim logo for the project. It must avoid any "instagram-like" general shape and form, but must still be able to represent a "gigapixel head", to create gigapixel photography using a camera.
+> The project description is: PanGo is a pan-tilt photography controller for automated grid shooting. It drives a two-axis (pan/tilt) camera rig with stepper motors, triggers a camera via GPIO, and computes a grid of shots based on lens parameters and desired overlap. Ideal for panoramas, photogrammetry, or timelapse sequences.
+>
+> You can read more on its github project page: https://github.com/cjeanneret/pango if you can access it.
+
+## Post-processing
+
+The raw output (692×900) includes the hexagon icon and "PanGo" text below it. The text was cropped out (top 710 px kept) and the result force-resized to 692×692 to produce a square source image. This introduces a negligible 2.5 % vertical squish.
+
+```bash
+magick logo.png -crop 692x710+0+0 +repage -resize 692x692! logo-pango.png
+```
 
 ## Web variants
 
-The following sizes are derived from the original (2048×2048) using ImageMagick:
+The following sizes are derived from the square source (692×692) using ImageMagick:
 
 | File | Size | Use |
 |------|------|-----|
 | `favicon.ico` | 16, 32, 48 | Browser favicon |
-| `favicon-16x16.png`, `favicon-32x32.png` | 16×16, 32×32 | Favicon |
-| `apple-touch-icon.png` | 180×180 | iOS / Android home screen |
+| `favicon-16x16.png`, `favicon-32x32.png`, `favicon-48x48.png` | 16×16, 32×32, 48×48 | Favicon |
+| `apple-touch-icon.png` | 180×180 | iOS / Android home screen (flattened on white) |
 | `logo-64.png` … `logo-512.png` | 64 to 512 px | Web interface, PWA |
