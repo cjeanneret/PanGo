@@ -30,7 +30,10 @@ func TestCalculateGridPlan_StandardCase(t *testing.T) {
 	fovCalc, _ := NewFOVCalculator(cfg)
 	stepsCalc := NewStepsCalculator(cfg)
 
-	plan := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+	plan, err := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+	if err != nil {
+		t.Fatalf("CalculateGridPlan failed: %v", err)
+	}
 
 	// Verify basic properties
 	if plan.PanColumns < 1 {
@@ -76,7 +79,10 @@ func TestCalculateGridPlan_MinimumGrid(t *testing.T) {
 	fovCalc, _ := NewFOVCalculator(cfg)
 	stepsCalc := NewStepsCalculator(cfg)
 
-	plan := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+	plan, err := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+	if err != nil {
+		t.Fatalf("CalculateGridPlan failed: %v", err)
+	}
 
 	if plan.PanColumns < 1 {
 		t.Errorf("PanColumns = %d, must be >= 1", plan.PanColumns)
@@ -91,7 +97,10 @@ func TestCalculateGridPlan_FullPanorama360(t *testing.T) {
 	fovCalc, _ := NewFOVCalculator(cfg)
 	stepsCalc := NewStepsCalculator(cfg)
 
-	plan := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+	plan, err := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+	if err != nil {
+		t.Fatalf("CalculateGridPlan failed: %v", err)
+	}
 
 	// 360 deg / rotation_angle should give many columns
 	if plan.PanColumns < 10 {
@@ -105,11 +114,17 @@ func TestCalculateGridPlan_LargeOverlap(t *testing.T) {
 
 	fov90, _ := NewFOVCalculator(cfg90)
 	steps90 := NewStepsCalculator(cfg90)
-	plan90 := CalculateGridPlan(cfg90, fov90, steps90)
+	plan90, err := CalculateGridPlan(cfg90, fov90, steps90)
+	if err != nil {
+		t.Fatalf("CalculateGridPlan failed: %v", err)
+	}
 
 	fov5, _ := NewFOVCalculator(cfg5)
 	steps5 := NewStepsCalculator(cfg5)
-	plan5 := CalculateGridPlan(cfg5, fov5, steps5)
+	plan5, err := CalculateGridPlan(cfg5, fov5, steps5)
+	if err != nil {
+		t.Fatalf("CalculateGridPlan failed: %v", err)
+	}
 
 	if plan90.PanColumns <= plan5.PanColumns {
 		t.Errorf("90%% overlap columns (%d) should be more than 5%% overlap columns (%d)",
@@ -138,7 +153,10 @@ func TestCalculateGridPlan_StartPositions(t *testing.T) {
 			cfg := newGridConfig(35, 23.6, 15.8, 30, tc.hAngle, tc.vAngle)
 			fovCalc, _ := NewFOVCalculator(cfg)
 			stepsCalc := NewStepsCalculator(cfg)
-			plan := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+			plan, err := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+			if err != nil {
+				t.Fatalf("CalculateGridPlan failed: %v", err)
+			}
 
 			if math.Abs(plan.StartPanAngle-tc.wantPanA) > epsilon {
 				t.Errorf("StartPanAngle = %v, want %v", plan.StartPanAngle, tc.wantPanA)
@@ -166,7 +184,10 @@ func TestCalculateGridPlan_StepSizesPositive(t *testing.T) {
 			cfg := newGridConfig(tc.focal, 23.6, 15.8, 30, tc.hAngle, tc.vAngle)
 			fovCalc, _ := NewFOVCalculator(cfg)
 			stepsCalc := NewStepsCalculator(cfg)
-			plan := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+			plan, err := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+			if err != nil {
+				t.Fatalf("CalculateGridPlan failed: %v", err)
+			}
 
 			if plan.PanStepSize <= 0 {
 				t.Errorf("PanStepSize = %d, must be > 0", plan.PanStepSize)
@@ -183,7 +204,10 @@ func TestCalculateGridPlan_AlwaysAtLeastOnePhoto(t *testing.T) {
 	cfg := newGridConfig(35, 23.6, 15.8, 30, 0.1, 0.1)
 	fovCalc, _ := NewFOVCalculator(cfg)
 	stepsCalc := NewStepsCalculator(cfg)
-	plan := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+	plan, err := CalculateGridPlan(cfg, fovCalc, stepsCalc)
+	if err != nil {
+		t.Fatalf("CalculateGridPlan failed: %v", err)
+	}
 
 	if plan.PanColumns < 1 {
 		t.Errorf("PanColumns = %d, must be >= 1", plan.PanColumns)

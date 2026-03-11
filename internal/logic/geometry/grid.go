@@ -1,9 +1,17 @@
 package geometry
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/cjeanneret/PanGo/internal/config"
+)
+
+const (
+	MaxPanColumns  = 1000
+	MaxTiltRows    = 1000
+	MaxTotalPhotos = 100000
+	MaxMotorSteps  = 1000000
 )
 
 // GridPlan calculates the photo grid plan needed
@@ -24,8 +32,9 @@ type GridPlan struct {
 }
 
 // CalculateGridPlan calculates the complete grid plan from config
-// and FOV/steps calculators.
-func CalculateGridPlan(cfg *config.Config, fovCalc *FOVCalculator, stepsCalc *StepsCalculator) *GridPlan {
+// and FOV/steps calculators. Returns an error if the calculated grid
+// would require excessive resources (preventing overflow/DoS).
+func CalculateGridPlan(cfg *config.Config, fovCalc *FOVCalculator, stepsCalc *StepsCalculator) (*GridPlan, error) {
 	// Rotation angles between each photo
 	panRotationAngle := fovCalc.HorizontalRotationAngle()
 	tiltRotationAngle := fovCalc.VerticalRotationAngle()
@@ -47,14 +56,32 @@ func CalculateGridPlan(cfg *config.Config, fovCalc *FOVCalculator, stepsCalc *St
 		tiltRows = 1
 	}
 
+	// Prevent overflow: cap grid dimensions
+	if panColumns > MaxPanColumns {
+		return nil, fmt.Errorf("grid plan would require %d pan columns (max %d): reduce angle or increase overlap", panColumns, MaxPanColumns)
+	}
+	if tiltRows > MaxTiltRows {
+		return nil, fmt.Errorf("grid plan would require %d tilt rows (max %d): reduce angle or increase overlap", tiltRows, MaxTiltRows)
+	}
+	totalPhotos := panColumns * tiltRows
+	if totalPhotos > MaxTotalPhotos {
+		return nil, fmt.Errorf("grid plan would require %d total photos (max %d): reduce angle or increase overlap", totalPhotos, MaxTotalPhotos)
+	}
+
 	// Convert to motor steps
 	panStepSize := stepsCalc.PanStepsFromAngle(panRotationAngle)
 	tiltStepSize := stepsCalc.TiltStepsFromAngle(tiltRotationAngle)
 
+	// Prevent excessive motor steps per movement
+	if panStepSize > MaxMotorSteps || tiltStepSize > MaxMotorSteps {
+		return nil, fmt.Errorf("grid plan would require %d/%d motor steps (max %d): reduce angle or increase overlap",
+			panStepSize, tiltStepSize, MaxMotorSteps)
+	}
+
 	// Start position: far left (negative) and top (positive)
 	// Note: we assume "up" = positive angle for tilt
-	startPanAngle := -cfg.HorizontalHalfAngleDeg()  // left
-	startTiltAngle := cfg.VerticalHalfAngleDeg()    // top
+	startPanAngle := -cfg.HorizontalHalfAngleDeg() // left
+	startTiltAngle := cfg.VerticalHalfAngleDeg()   // top
 
 	startPanSteps := stepsCalc.PanStepsFromAngle(startPanAngle)
 	startTiltSteps := stepsCalc.TiltStepsFromAngle(startTiltAngle)
@@ -68,5 +95,5 @@ func CalculateGridPlan(cfg *config.Config, fovCalc *FOVCalculator, stepsCalc *St
 		StartTiltAngle: startTiltAngle,
 		StartPanSteps:  startPanSteps,
 		StartTiltSteps: startTiltSteps,
-	}
+	}, nil
 }

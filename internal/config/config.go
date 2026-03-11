@@ -13,7 +13,7 @@ import (
 type StepperConfig struct {
 	StepPin       int `yaml:"step_pin"`
 	DirPin        int `yaml:"dir_pin"`
-	EnablePin     int `yaml:"enable_pin"`     // A4988 ENABLE pin (BCM). 0 = not used. Active LOW.
+	EnablePin     int `yaml:"enable_pin"` // A4988 ENABLE pin (BCM). 0 = not used. Active LOW.
 	StepsPerRev   int `yaml:"steps_per_rev"`
 	Microstepping int `yaml:"microstepping"`
 }
@@ -73,6 +73,87 @@ type Config struct {
 	Defaults    DefaultsConfig    `yaml:"defaults"`
 }
 
+const (
+	MinGPIOPin           = 0
+	MaxGPIOPin           = 27
+	MaxMotorStepsPerRev  = 1000
+	MaxCameraDelayMs     = 60000
+	MaxFocalLengthMm     = 2000.0
+	MinFocalLengthMm     = 1.0
+	MaxSensorDimensionMm = 100.0
+)
+
+var validMicrostepping = map[int]bool{
+	1: true, 2: true, 4: true, 8: true, 16: true, 32: true,
+}
+
+func validateGPIOPin(pin int, name string) error {
+	if pin < MinGPIOPin || pin > MaxGPIOPin {
+		return fmt.Errorf("%s must be between %d and %d (BCM pin number), got %d", name, MinGPIOPin, MaxGPIOPin, pin)
+	}
+	return nil
+}
+
+func validateStepperConfig(cfg StepperConfig, name string) error {
+	if err := validateGPIOPin(cfg.StepPin, name+" step_pin"); err != nil {
+		return err
+	}
+	if err := validateGPIOPin(cfg.DirPin, name+" dir_pin"); err != nil {
+		return err
+	}
+	if cfg.EnablePin != 0 {
+		if err := validateGPIOPin(cfg.EnablePin, name+" enable_pin"); err != nil {
+			return err
+		}
+	}
+	if cfg.StepsPerRev <= 0 {
+		return fmt.Errorf("%s steps_per_rev must be > 0, got %d", name, cfg.StepsPerRev)
+	}
+	if cfg.StepsPerRev > MaxMotorStepsPerRev {
+		return fmt.Errorf("%s steps_per_rev must be <= %d, got %d", name, MaxMotorStepsPerRev, cfg.StepsPerRev)
+	}
+	if !validMicrostepping[cfg.Microstepping] {
+		return fmt.Errorf("%s microstepping must be one of 1,2,4,8,16,32, got %d", name, cfg.Microstepping)
+	}
+	return nil
+}
+
+func validateCameraConfig(cfg CameraConfig) error {
+	if err := validateGPIOPin(cfg.FocusPin, "camera focus_pin"); err != nil {
+		return err
+	}
+	if err := validateGPIOPin(cfg.ShutterPin, "camera shutter_pin"); err != nil {
+		return err
+	}
+	if cfg.FocusDelayMs < 0 || cfg.FocusDelayMs > MaxCameraDelayMs {
+		return fmt.Errorf("camera focus_delay_ms must be between 0 and %d ms, got %d", MaxCameraDelayMs, cfg.FocusDelayMs)
+	}
+	if cfg.ShutterDelayMs < 0 || cfg.ShutterDelayMs > MaxCameraDelayMs {
+		return fmt.Errorf("camera shutter_delay_ms must be between 0 and %d ms, got %d", MaxCameraDelayMs, cfg.ShutterDelayMs)
+	}
+	if cfg.PostShotDelayMs < 0 || cfg.PostShotDelayMs > MaxCameraDelayMs {
+		return fmt.Errorf("camera post_shot_delay_ms must be between 0 and %d ms, got %d", MaxCameraDelayMs, cfg.PostShotDelayMs)
+	}
+	return nil
+}
+
+func validateLensConfig(cfg LensConfig) error {
+	if cfg.FocalLengthMm < MinFocalLengthMm || cfg.FocalLengthMm > MaxFocalLengthMm {
+		return fmt.Errorf("lens focal_length_mm must be between %.0f and %.0f mm, got %.2f", MinFocalLengthMm, MaxFocalLengthMm, cfg.FocalLengthMm)
+	}
+	return nil
+}
+
+func validateSensorConfig(cfg *SensorConfig) error {
+	if cfg.WidthMm <= 0 || cfg.WidthMm > MaxSensorDimensionMm {
+		return fmt.Errorf("sensor width_mm must be between 0 and %.0f mm, got %.2f", MaxSensorDimensionMm, cfg.WidthMm)
+	}
+	if cfg.HeightMm <= 0 || cfg.HeightMm > MaxSensorDimensionMm {
+		return fmt.Errorf("sensor height_mm must be between 0 and %.0f mm, got %.2f", MaxSensorDimensionMm, cfg.HeightMm)
+	}
+	return nil
+}
+
 // ValidateConfigPath ensures the path is within a configs/ directory and has .yaml extension.
 // Prevents path traversal (e.g. ../../etc/passwd) when loading configuration.
 func ValidateConfigPath(path string) error {
@@ -114,15 +195,55 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("unmarshal yaml: %w", err)
 	}
 
-	// Basic validation
+	// Apply defaults for stepper configs if not provided
+	if cfg.PanStepper.StepsPerRev == 0 {
+		cfg.PanStepper.StepsPerRev = 200
+		cfg.PanStepper.Microstepping = 16
+		cfg.PanStepper.StepPin = 17
+		cfg.PanStepper.DirPin = 27
+		cfg.PanStepper.EnablePin = 5
+	}
+	if cfg.TiltStepper.StepsPerRev == 0 {
+		cfg.TiltStepper.StepsPerRev = 200
+		cfg.TiltStepper.Microstepping = 16
+		cfg.TiltStepper.StepPin = 22
+		cfg.TiltStepper.DirPin = 23
+		cfg.TiltStepper.EnablePin = 6
+	}
+
+	// Validate stepper configurations
+	if err := validateStepperConfig(cfg.PanStepper, "pan_stepper"); err != nil {
+		return nil, err
+	}
+	if err := validateStepperConfig(cfg.TiltStepper, "tilt_stepper"); err != nil {
+		return nil, err
+	}
+
+	// Validate camera configuration
 	if cfg.Camera.Type == "" {
 		return nil, fmt.Errorf("camera.type is required")
 	}
-	if cfg.Lens.FocalLengthMm <= 0 {
-		return nil, fmt.Errorf("lens.focal_length_mm must be > 0")
+	if err := validateCameraConfig(cfg.Camera); err != nil {
+		return nil, err
 	}
+
+	// Validate lens configuration
+	if err := validateLensConfig(cfg.Lens); err != nil {
+		return nil, err
+	}
+
+	// Validate sensor configuration if provided
+	if cfg.Sensor != nil {
+		if err := validateSensorConfig(cfg.Sensor); err != nil {
+			return nil, err
+		}
+	}
+	const MaxMoveSpeedMs = 1000
 	if cfg.Defaults.MoveSpeedMs <= 0 {
 		cfg.Defaults.MoveSpeedMs = 2 // reasonable default
+	}
+	if cfg.Defaults.MoveSpeedMs > MaxMoveSpeedMs {
+		cfg.Defaults.MoveSpeedMs = MaxMoveSpeedMs // cap at max
 	}
 	if cfg.Defaults.OverlapPercent < 0 || cfg.Defaults.OverlapPercent > 100 {
 		return nil, fmt.Errorf("overlap_percent must be between 0 and 100, got %.2f", cfg.Defaults.OverlapPercent)
@@ -143,15 +264,20 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("vertical_angle_deg must be <= 180, got %.2f", cfg.Defaults.VerticalAngleDeg)
 	}
 
-	// Default values for camera delays
-	if cfg.Camera.FocusDelayMs <= 0 {
+	// Default values for camera delays (if not set)
+	if cfg.Camera.FocusDelayMs == 0 {
 		cfg.Camera.FocusDelayMs = 500 // 500ms for autofocus
 	}
-	if cfg.Camera.ShutterDelayMs <= 0 {
+	if cfg.Camera.ShutterDelayMs == 0 {
 		cfg.Camera.ShutterDelayMs = 200 // 200ms shutter hold
 	}
-	if cfg.Camera.PostShotDelayMs <= 0 {
+	if cfg.Camera.PostShotDelayMs == 0 {
 		cfg.Camera.PostShotDelayMs = 300 // 300ms after shot before movement
+	}
+
+	// Validate debug level is in valid range
+	if cfg.Defaults.DebugLevel < 0 || cfg.Defaults.DebugLevel > 4 {
+		return nil, fmt.Errorf("debug_level must be between 0 and 4, got %d", cfg.Defaults.DebugLevel)
 	}
 
 	return &cfg, nil
