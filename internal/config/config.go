@@ -195,6 +195,22 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("unmarshal yaml: %w", err)
 	}
 
+	// Apply defaults for stepper configs if not provided
+	if cfg.PanStepper.StepsPerRev == 0 {
+		cfg.PanStepper.StepsPerRev = 200
+		cfg.PanStepper.Microstepping = 16
+		cfg.PanStepper.StepPin = 17
+		cfg.PanStepper.DirPin = 27
+		cfg.PanStepper.EnablePin = 5
+	}
+	if cfg.TiltStepper.StepsPerRev == 0 {
+		cfg.TiltStepper.StepsPerRev = 200
+		cfg.TiltStepper.Microstepping = 16
+		cfg.TiltStepper.StepPin = 22
+		cfg.TiltStepper.DirPin = 23
+		cfg.TiltStepper.EnablePin = 6
+	}
+
 	// Validate stepper configurations
 	if err := validateStepperConfig(cfg.PanStepper, "pan_stepper"); err != nil {
 		return nil, err
