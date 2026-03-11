@@ -53,7 +53,7 @@ func main() {
 	applyOverrides(cfg, web.Overrides{
 		HorizontalAngleDeg: *horizontalAngleDeg,
 		VerticalAngleDeg:   *verticalAngleDeg,
-		FocalLengthMm:     *focalLengthMm,
+		FocalLengthMm:      *focalLengthMm,
 	})
 
 	// Initialize debug system
@@ -155,7 +155,10 @@ func executeCapture(
 		return fmt.Errorf("create FOV calculator: %w", err)
 	}
 	stepsCalc := geometry.NewStepsCalculator(cfg)
-	gridPlan := geometry.CalculateGridPlan(cfg, fovCalc, stepsCalc)
+	gridPlan, err := geometry.CalculateGridPlan(cfg, fovCalc, stepsCalc)
+	if err != nil {
+		return fmt.Errorf("calculate grid plan: %w", err)
+	}
 
 	totalPhotos := gridPlan.PanColumns * gridPlan.TiltRows
 	debug.Summary("Grid Plan Summary")
